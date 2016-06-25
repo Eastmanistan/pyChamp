@@ -1,9 +1,13 @@
 import pygame
 import sys
+import time
+from pygame.locals import *
 background_image_filename = 'Assets/night1.jpg'
 mouse_image_filename = 'Assets/rocky_run_1.png'
 background = pygame.image.load(background_image_filename).convert()
 mouse_cursor = pygame.image.load(mouse_image_filename).convert_alpha()
+
+FPS = 30
 
 class GameSprite(pygame.sprite.Sprite):
     def __init__(self, aniStatesDict):  #aniStatesDict is a dicionary of animation states to base filenames
@@ -17,6 +21,7 @@ class GameSprite(pygame.sprite.Sprite):
         self.finished = False
         self.image = self.aniDict[self.aniState][self.currentFrame]
         self.rect = self.image.get_rect()
+        self.gravity = False
 
 
 
@@ -38,7 +43,10 @@ class GameSprite(pygame.sprite.Sprite):
         self.rect.x += self.getVelocity()['x']
         self.rect.y += self.getVelocity()['y']
 
-    def nextFrame(self,):
+    def nextFrame(self):
+        self.currentFrame += 1
+        if self.currentFrame >= len(self.aniDict[self.aniState]):
+            self.currentFrame = 0
         self.image = self.aniDict[self.aniState][self.currentFrame]
 
     def update(self):
@@ -63,10 +71,29 @@ class SpritePool(object):  #for obstacles
 class Runner(GameSprite):
     def __init__(self, imgDict):
         GameSprite.__init__(self, imgDict)
+        self.setVelocity((1,0))
 
     def jump(self):
-        vel = self.getVelocity()
-        self.setVelocity((vel[0],vel[1]+30))
+
+        self.setVelocity((1, -10))
+        self.gravity = True
+        #self.setAniState('jump')
+
+
+    def update(self):
+        if self.gravity:
+            y = self.getVelocity()['y']
+            self.setVelocity((1, y+1))
+            if self.rect.top >= 300:
+                self.gravity = False
+                self.rect.top = 300
+                self.setVelocity((1,0))
+        else:
+            for event in pygame.event.get(KEYDOWN):
+                if event.key == K_SPACE:
+                    self.jump()
+        self.nextFrame()
+        self.move()
 
 
 
@@ -78,6 +105,13 @@ class TextBubble(pygame.sprite.Sprite):
 class Pushup(GameSprite):
     def __init__(self, imgDict):
         GameSprite.__init__(self, imgDict)
+
+    def update(self):
+        for event in pygame.event.get(KEYDOWN):
+            if event.key == K_SPACE:
+                self.setAniState('pushUp')
+
+
 
 class Trainer(GameSprite):
     def __init__(self, imgDict):
@@ -101,7 +135,7 @@ spriteLocationDict example
 """
 class Scene(object):
     def __init__(self, next, spriteLocationDict):
-        self.sprites = spriteLocationDict.keys() #buildGroup(*spriteLocationDict.keys())
+        self.sprites = buildGroup(*spriteLocationDict.keys())
         self.nextScene = next
         self.startingLocations = spriteLocationDict
         self.done = False
@@ -133,6 +167,7 @@ class Engine(object):
         self.currentScene = False
         self.screen = screen
 
+
     def newScene(self, scene): #resets with new scene
         self.currentScene = scene
 
@@ -143,20 +178,21 @@ class Engine(object):
         self.currentScene = scene
         scene.setup()
         while not scene.done:
-            for event in pygame.event.get():
-                if event.type == pygame.locals.QUIT:
-                    sys.exit()
+
             for sprite in scene.sprites:
-                sprite.update()
-                self.screen.blit(sprite.image, (300,300))
-            self.screen.blit(background, (0, 0))
-            self.screen.blit(mouse_cursor, (300, 300))
+                sprite.update() #this is where unique sprite behavior goes
+            scene.draw(self.screen)
             pygame.display.update()
-            #scene.draw(self.screen)
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    sys.exit()
+            time.sleep((float(1) / FPS))
+
             scene.checkFinished()
         if bool(scene.nextScene):
             self.run(scene.nextScene)
         exit()
+
 
 
 def buildGroup(*sprites):

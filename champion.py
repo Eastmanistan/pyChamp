@@ -10,8 +10,9 @@ x, y = 0, 0
 move_x, move_y = 0, 0
 gameEngine = engine.Engine(screen)
 player = engine.Runner({'default': ('Assets/rocky_run_.png', 10) })
-background = engine.GameSprite({'default': ('Assets/night.jpg', 1)})
-firstScene = engine.Scene(False, {background: (0,0), player: (0,300)})
+player2 = engine.Runner({'default': ('Assets/rocky_run_.png', 10) })
+#background = engine.GameSprite({'default': ('Assets/night.jpg', 1)})
+firstScene = engine.Scene(False, {player2:(100,400), player: (0,300)})
 pygame.event.clear()
 gameEngine.run(firstScene)
 
